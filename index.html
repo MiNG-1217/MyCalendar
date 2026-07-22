@@ -19,14 +19,13 @@
       padding: 16px;
       background-color: #f5f5f7;
       color: #333;
-      user-select: none; /* スワイプ時の意図しないテキスト選択を防止 */
+      user-select: none;
     }
 
     .container {
       max-width: 500px;
       margin: 0 auto;
       position: relative;
-      min-height: 90vh;
     }
 
     /* カレンダーエリア */
@@ -35,7 +34,7 @@
       padding: 20px;
       border-radius: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      touch-action: pan-y; /* スワイプ操作をスムーズにする設定 */
+      touch-action: pan-y;
     }
 
     .calendar-header {
@@ -249,67 +248,12 @@
       cursor: pointer;
       margin-top: 12px;
     }
-
-    /* イベント一覧エリア（カレンダー下部） */
-    .event-list-card {
-      background: #fff;
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      margin-top: 20px;
-    }
-
-    .event-item {
-      padding: 10px 12px;
-      background: #f9f9f9;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      border-left: 5px solid #007aff;
-    }
-
-    .event-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .event-title {
-      font-weight: bold;
-      font-size: 1rem;
-    }
-
-    .event-genre {
-      font-size: 0.75rem;
-      background: #e5e5ea;
-      padding: 2px 6px;
-      border-radius: 10px;
-    }
-
-    .event-detail {
-      font-size: 0.8rem;
-      color: #555;
-      margin-top: 4px;
-    }
-
-    .event-detail a {
-      color: #007aff;
-      text-decoration: none;
-    }
-
-    .delete-btn {
-      background: none;
-      border: none;
-      color: #ff3b30;
-      cursor: pointer;
-      font-size: 0.8rem;
-      margin-top: 6px;
-    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- カレンダー表示エリア（メイン・スライド機能付き） -->
+  <!-- カレンダー表示エリア（メイン・左右スライド切り替え対応） -->
   <div class="calendar-card" id="calendarCard">
     <div class="calendar-header">
       <button class="nav-btn" onclick="prevMonth()">&lt;</button>
@@ -317,12 +261,6 @@
       <button class="nav-btn" onclick="nextMonth()">&gt;</button>
     </div>
     <div class="calendar-grid" id="calendarGrid"></div>
-  </div>
-
-  <!-- 登録イベント一覧 -->
-  <div class="event-list-card">
-    <h3>登録イベント一覧</h3>
-    <div id="eventList"></div>
   </div>
 
   <!-- ＋ボタン -->
@@ -395,7 +333,7 @@
       <textarea id="eventMemo" placeholder="自由記入"></textarea>
     </div>
 
-    <!-- カラー選択（ラベルなし 6色 × 3トーン） -->
+    <!-- カラー選択（6色 × 3トーン） -->
     <div class="form-group">
       <label>カラーを選択</label>
       <div class="color-palette-group">
@@ -472,7 +410,6 @@
     initColorPalette();
     toggleTimeInput();
     renderCalendar();
-    renderEvents();
     initSwipeGesture();
   });
 
@@ -493,12 +430,11 @@
 
     function handleSwipe() {
       const diffX = endX - startX;
-      // 50px以上スライドした場合に月移動を実行
       if (Math.abs(diffX) > 50) {
         if (diffX < 0) {
-          nextMonth(); // 左スライド ➔ 翌月へ
+          nextMonth();
         } else {
-          prevMonth(); // 右スライド ➔ 前月へ
+          prevMonth();
         }
       }
     }
@@ -616,7 +552,6 @@
 
     closeModal();
     renderCalendar();
-    renderEvents();
   }
 
   function getEvents() {
@@ -625,61 +560,6 @@
 
   function saveEvents(events) {
     localStorage.setItem('my_calendar_events', JSON.stringify(events));
-  }
-
-  function deleteEvent(id) {
-    let events = getEvents();
-    events = events.filter(e => e.id !== id);
-    saveEvents(events);
-    renderCalendar();
-    renderEvents();
-  }
-
-  function renderEvents() {
-    const list = document.getElementById('eventList');
-    list.innerHTML = '';
-    const events = getEvents();
-
-    events.forEach(e => {
-      const item = document.createElement('div');
-      item.className = 'event-item';
-      item.style.borderLeftColor = e.color;
-
-      let dateText = '';
-      if (e.startDate && e.endDate) {
-        dateText = `${e.startDate} 〜 ${e.endDate}`;
-      } else if (e.startDate) {
-        dateText = e.startDate;
-      }
-
-      let timeText = '';
-      if (e.genre === '音楽' && (e.startTime || e.endTime)) {
-        if (e.startTime && e.endTime) {
-          timeText = `⏰ ${e.startTime} 〜 ${e.endTime}`;
-        } else if (e.startTime) {
-          timeText = `⏰ ${e.startTime}`;
-        }
-      }
-
-      let mapLink = e.location ? `<div class="event-detail">📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank">${e.location}</a></div>` : '';
-      let urlLink = e.url ? `<div class="event-detail">🔗 <a href="${e.url}" target="_blank">${e.url}</a></div>` : '';
-      let memoText = e.memo ? `<div class="event-detail">📝 ${e.memo}</div>` : '';
-
-      item.innerHTML = `
-        <div class="event-header">
-          <span class="event-title">${e.title}</span>
-          <span class="event-genre">${e.genre}</span>
-        </div>
-        ${dateText ? `<div class="event-detail">📅 ${dateText}</div>` : ''}
-        ${timeText ? `<div class="event-detail">${timeText}</div>` : ''}
-        ${mapLink}
-        ${urlLink}
-        ${memoText}
-        <button class="delete-btn" onclick="deleteEvent(${e.id})">削除</button>
-      `;
-
-      list.appendChild(item);
-    });
   }
 </script>
 
