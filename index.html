@@ -28,7 +28,7 @@
       position: relative;
     }
 
-    /* ジャンル絞り込みタブ（上部） */
+    /* タグタブ（上部フィルター） */
     .filter-bar {
       display: flex;
       gap: 6px;
@@ -44,10 +44,10 @@
 
     .filter-tab {
       flex: 0 0 auto;
-      padding: 6px 12px;
+      padding: 6px 14px;
       background: #e5e5ea;
       border-radius: 16px;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: bold;
       color: #555;
       cursor: pointer;
@@ -123,7 +123,7 @@
       margin-bottom: 2px;
     }
 
-    /* イベントテキストバー（文字が乗るバー） */
+    /* イベントテキストバー */
     .event-bar-container {
       display: flex;
       flex-direction: column;
@@ -337,7 +337,7 @@
 <body>
 
 <div class="container">
-  <!-- ジャンル絞り込みタブ -->
+  <!-- タグタブ（上部切り替え） -->
   <div class="filter-bar" id="filterBar"></div>
 
   <!-- カレンダー表示エリア -->
@@ -364,7 +364,7 @@
 
     <div class="form-group">
       <label for="eventTitle">イベント名</label>
-      <input type="text" id="eventTitle" placeholder="例：ムーミン展">
+      <input type="text" id="eventTitle" placeholder="例：イベント名">
     </div>
 
     <div class="form-group">
@@ -478,12 +478,10 @@
 <script>
   let currentDate = new Date();
   let selectedColor = "#b30000";
-  let activeFilter = "すべて";
+  let activeTag = "すべて";
 
-  const genres = [
-    "すべて", "グルメ", "【長期】グルメ", "音楽", "アート", "【長期】アート",
-    "キャラクター", "【長期】キャラクター", "季節", "【長期】季節", "他", "【長期】他"
-  ];
+  // タグタブのリスト（7種）
+  const tags = ["すべて", "グルメ", "音楽", "アート", "キャラクター", "季節", "他"];
 
   function openAddModal() {
     document.getElementById('addModalOverlay').classList.add('active');
@@ -500,12 +498,12 @@
   function initFilterBar() {
     const filterBar = document.getElementById('filterBar');
     filterBar.innerHTML = '';
-    genres.forEach(g => {
+    tags.forEach(tag => {
       const btn = document.createElement('button');
-      btn.className = `filter-tab ${g === activeFilter ? 'active' : ''}`;
-      btn.textContent = g;
+      btn.className = `filter-tab ${tag === activeTag ? 'active' : ''}`;
+      btn.textContent = tag;
       btn.onclick = () => {
-        activeFilter = g;
+        activeTag = tag;
         initFilterBar();
         renderCalendar();
       };
@@ -599,8 +597,12 @@
     }
 
     let events = getEvents();
-    if (activeFilter !== 'すべて') {
-      events = events.filter(e => e.genre === activeFilter);
+
+    // タグによるフィルタリング（ジャンルと【長期】ジャンルの両方を判定）
+    if (activeTag !== 'すべて') {
+      events = events.filter(e => {
+        return e.genre === activeTag || e.genre === `【長期】${activeTag}`;
+      });
     }
 
     for (let date = 1; date <= lastDate; date++) {
