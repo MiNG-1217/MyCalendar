@@ -16,7 +16,7 @@
     }
 
     body {
-      padding: 16px;
+      padding: 12px;
       background-color: #f5f5f7;
       color: #333;
       user-select: none;
@@ -28,10 +28,42 @@
       position: relative;
     }
 
+    /* ジャンル絞り込みタブ（上部） */
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-tab {
+      flex: 0 0 auto;
+      padding: 6px 12px;
+      background: #e5e5ea;
+      border-radius: 16px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #555;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+    }
+
+    .filter-tab.active {
+      background: #007aff;
+      color: #fff;
+    }
+
     /* カレンダーエリア */
     .calendar-card {
       background: #fff;
-      padding: 20px;
+      padding: 12px;
       border-radius: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       touch-action: pan-y;
@@ -41,11 +73,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .calendar-header h2 {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
     }
 
     .nav-btn {
@@ -60,44 +92,65 @@
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
+      gap: 2px;
       text-align: center;
     }
 
     .day-name {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: bold;
       color: #8e8e93;
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
 
     .day-cell {
-      min-height: 52px;
+      min-height: 85px;
       background: #fafafa;
-      border-radius: 8px;
-      padding: 4px;
-      font-size: 0.85rem;
+      border-radius: 6px;
+      padding: 2px;
+      font-size: 0.75rem;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
+      overflow: hidden;
+      cursor: pointer;
     }
 
     .day-number {
       font-weight: bold;
+      font-size: 0.8rem;
+      text-align: center;
       margin-bottom: 2px;
     }
 
-    .event-dot-container {
+    /* イベントテキストバー（文字が乗るバー） */
+    .event-bar-container {
       display: flex;
+      flex-direction: column;
       gap: 2px;
-      flex-wrap: wrap;
-      justify-content: center;
+      width: 100%;
+      overflow: hidden;
     }
 
-    .event-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
+    .event-bar {
+      font-size: 0.65rem;
+      color: #fff;
+      padding: 2px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+      line-height: 1.2;
+      font-weight: bold;
+    }
+
+    .more-count {
+      font-size: 0.6rem;
+      color: #8e8e93;
+      text-align: center;
+      font-weight: bold;
+      margin-top: 1px;
     }
 
     /* Floating 「＋」ボタン */
@@ -137,10 +190,10 @@
       display: flex;
     }
 
-    /* フォームモーダル本体 */
+    /* フォーム・詳細モーダル本体 */
     .form-card {
       background: #fff;
-      padding: 24px 20px;
+      padding: 20px;
       border-top-left-radius: 20px;
       border-top-right-radius: 20px;
       width: 100%;
@@ -248,12 +301,46 @@
       cursor: pointer;
       margin-top: 12px;
     }
+
+    /* 日付詳細表示用スタイル */
+    .detail-item {
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border-left: 5px solid #007aff;
+    }
+
+    .detail-item-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .detail-item-sub {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #ff3b30;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- カレンダー表示エリア（メイン・左右スライド切り替え対応） -->
+  <!-- ジャンル絞り込みタブ -->
+  <div class="filter-bar" id="filterBar"></div>
+
+  <!-- カレンダー表示エリア -->
   <div class="calendar-card" id="calendarCard">
     <div class="calendar-header">
       <button class="nav-btn" onclick="prevMonth()">&lt;</button>
@@ -264,30 +351,36 @@
   </div>
 
   <!-- ＋ボタン -->
-  <button class="add-btn-float" onclick="openModal()">＋</button>
+  <button class="add-btn-float" onclick="openAddModal()">＋</button>
 </div>
 
 <!-- イベント追加モーダル -->
-<div class="modal-overlay" id="modalOverlay">
+<div class="modal-overlay" id="addModalOverlay">
   <div class="form-card">
     <div class="modal-header">
       <h3>イベント追加</h3>
-      <button class="close-btn" onclick="closeModal()">✕</button>
+      <button class="close-btn" onclick="closeAddModal()">✕</button>
     </div>
 
     <div class="form-group">
       <label for="eventTitle">イベント名</label>
-      <input type="text" id="eventTitle" placeholder="例：イベント名">
+      <input type="text" id="eventTitle" placeholder="例：ムーミン展">
     </div>
 
     <div class="form-group">
       <label for="eventGenre">ジャンル</label>
       <select id="eventGenre" onchange="toggleTimeInput()">
         <option value="グルメ">グルメ</option>
+        <option value="【長期】グルメ">【長期】グルメ</option>
         <option value="音楽">音楽</option>
-        <option value="展示・アート">展示・アート</option>
-        <option value="おでかけ・旅行">おでかけ・旅行</option>
-        <option value="その他">その他</option>
+        <option value="アート">アート</option>
+        <option value="【長期】アート">【長期】アート</option>
+        <option value="キャラクター">キャラクター</option>
+        <option value="【長期】キャラクター">【長期】キャラクター</option>
+        <option value="季節">季節</option>
+        <option value="【長期】季節">【長期】季節</option>
+        <option value="他">他</option>
+        <option value="【長期】他">【長期】他</option>
       </select>
     </div>
 
@@ -371,16 +464,53 @@
   </div>
 </div>
 
+<!-- 日付詳細タップモーダル -->
+<div class="modal-overlay" id="detailModalOverlay">
+  <div class="form-card">
+    <div class="modal-header">
+      <h3 id="detailDateTitle">2026年7月1日</h3>
+      <button class="close-btn" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div id="detailList"></div>
+  </div>
+</div>
+
 <script>
   let currentDate = new Date();
   let selectedColor = "#b30000";
+  let activeFilter = "すべて";
 
-  function openModal() {
-    document.getElementById('modalOverlay').classList.add('active');
+  const genres = [
+    "すべて", "グルメ", "【長期】グルメ", "音楽", "アート", "【長期】アート",
+    "キャラクター", "【長期】キャラクター", "季節", "【長期】季節", "他", "【長期】他"
+  ];
+
+  function openAddModal() {
+    document.getElementById('addModalOverlay').classList.add('active');
   }
 
-  function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('active');
+  function closeAddModal() {
+    document.getElementById('addModalOverlay').classList.remove('active');
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detailModalOverlay').classList.remove('active');
+  }
+
+  function initFilterBar() {
+    const filterBar = document.getElementById('filterBar');
+    filterBar.innerHTML = '';
+    genres.forEach(g => {
+      const btn = document.createElement('button');
+      btn.className = `filter-tab ${g === activeFilter ? 'active' : ''}`;
+      btn.textContent = g;
+      btn.onclick = () => {
+        activeFilter = g;
+        initFilterBar();
+        renderCalendar();
+      };
+      filterBar.appendChild(btn);
+    });
   }
 
   function initColorPalette() {
@@ -407,13 +537,13 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    initFilterBar();
     initColorPalette();
     toggleTimeInput();
     renderCalendar();
     initSwipeGesture();
   });
 
-  /* カレンダーの左右スライド（スワイプ）制御 */
   function initSwipeGesture() {
     const calendarCard = document.getElementById('calendarCard');
     let startX = 0;
@@ -464,10 +594,14 @@
       const emptyCell = document.createElement('div');
       emptyCell.className = 'day-cell';
       emptyCell.style.background = 'transparent';
+      emptyCell.style.cursor = 'default';
       grid.appendChild(emptyCell);
     }
 
-    const events = getEvents();
+    let events = getEvents();
+    if (activeFilter !== 'すべて') {
+      events = events.filter(e => e.genre === activeFilter);
+    }
 
     for (let date = 1; date <= lastDate; date++) {
       const cell = document.createElement('div');
@@ -481,18 +615,67 @@
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
       const dayEvents = events.filter(e => e.startDate <= dateStr && (e.endDate ? e.endDate >= dateStr : e.startDate >= dateStr));
 
-      const dotContainer = document.createElement('div');
-      dotContainer.className = 'event-dot-container';
-      dayEvents.forEach(e => {
-        const dot = document.createElement('div');
-        dot.className = 'event-dot';
-        dot.style.backgroundColor = e.color;
-        dotContainer.appendChild(dot);
+      const barContainer = document.createElement('div');
+      barContainer.className = 'event-bar-container';
+
+      const maxDisplay = 3;
+      dayEvents.slice(0, maxDisplay).forEach(e => {
+        const bar = document.createElement('div');
+        bar.className = 'event-bar';
+        bar.style.backgroundColor = e.color;
+        bar.textContent = e.title;
+        barContainer.appendChild(bar);
       });
-      cell.appendChild(dotContainer);
+
+      if (dayEvents.length > maxDisplay) {
+        const more = document.createElement('div');
+        more.className = 'more-count';
+        more.textContent = `+${dayEvents.length - maxDisplay}件`;
+        barContainer.appendChild(more);
+      }
+
+      cell.appendChild(barContainer);
+
+      cell.onclick = () => openDetailModal(dateStr, dayEvents);
 
       grid.appendChild(cell);
     }
+  }
+
+  function openDetailModal(dateStr, dayEvents) {
+    document.getElementById('detailDateTitle').textContent = dateStr;
+    const list = document.getElementById('detailList');
+    list.innerHTML = '';
+
+    if (dayEvents.length === 0) {
+      list.innerHTML = '<p style="color:#8e8e93; font-size:0.9rem;">予定はありません</p>';
+    } else {
+      dayEvents.forEach(e => {
+        const item = document.createElement('div');
+        item.className = 'detail-item';
+        item.style.borderLeftColor = e.color;
+
+        let timeText = (e.genre === '音楽' && e.startTime) ? `<div class="detail-item-sub">⏰ ${e.startTime} 〜 ${e.endTime || ''}</div>` : '';
+        let locText = e.location ? `<div class="detail-item-sub">📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank">${e.location}</a></div>` : '';
+        let urlText = e.url ? `<div class="detail-item-sub">🔗 <a href="${e.url}" target="_blank">${e.url}</a></div>` : '';
+        let memoText = e.memo ? `<div class="detail-item-sub">📝 ${e.memo}</div>` : '';
+
+        item.innerHTML = `
+          <div class="detail-item-header">
+            <span>${e.title}</span>
+            <span style="font-size:0.75rem; background:#e5e5ea; padding:2px 6px; border-radius:8px;">${e.genre}</span>
+          </div>
+          ${timeText}
+          ${locText}
+          ${urlText}
+          ${memoText}
+          <button class="delete-btn" onclick="deleteEvent(${e.id})">削除</button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    document.getElementById('detailModalOverlay').classList.add('active');
   }
 
   function prevMonth() {
@@ -539,7 +722,6 @@
     events.push(eventData);
     saveEvents(events);
 
-    // フォームリセット
     document.getElementById('eventTitle').value = '';
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
@@ -550,7 +732,7 @@
     document.getElementById('eventMemo').value = '';
     toggleTimeInput();
 
-    closeModal();
+    closeAddModal();
     renderCalendar();
   }
 
@@ -560,6 +742,14 @@
 
   function saveEvents(events) {
     localStorage.setItem('my_calendar_events', JSON.stringify(events));
+  }
+
+  function deleteEvent(id) {
+    let events = getEvents();
+    events = events.filter(e => e.id !== id);
+    saveEvents(events);
+    closeDetailModal();
+    renderCalendar();
   }
 </script>
 
