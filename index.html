@@ -19,11 +19,14 @@
       padding: 16px;
       background-color: #f5f5f7;
       color: #333;
+      user-select: none; /* スワイプ時の意図しないテキスト選択を防止 */
     }
 
     .container {
       max-width: 500px;
       margin: 0 auto;
+      position: relative;
+      min-height: 90vh;
     }
 
     /* カレンダーエリア */
@@ -32,7 +35,7 @@
       padding: 20px;
       border-radius: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
+      touch-action: pan-y; /* スワイプ操作をスムーズにする設定 */
     }
 
     .calendar-header {
@@ -70,7 +73,7 @@
     }
 
     .day-cell {
-      min-height: 48px;
+      min-height: 52px;
       background: #fafafa;
       border-radius: 8px;
       padding: 4px;
@@ -98,18 +101,79 @@
       border-radius: 50%;
     }
 
-    /* フォームエリア */
-    .form-card {
-      background: #fff;
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
+    /* Floating 「＋」ボタン */
+    .add-btn-float {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background-color: #007aff;
+      color: #fff;
+      font-size: 32px;
+      line-height: 56px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,122,255,0.4);
+      cursor: pointer;
+      border: none;
+      z-index: 100;
     }
 
-    h3 {
-      font-size: 1.1rem;
+    /* モーダル背景 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 200;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    /* フォームモーダル本体 */
+    .form-card {
+      background: #fff;
+      padding: 24px 20px;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      animation: slideUp 0.25s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 16px;
+    }
+
+    .modal-header h3 {
+      font-size: 1.1rem;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: #8e8e93;
+      cursor: pointer;
     }
 
     .form-group {
@@ -146,33 +210,23 @@
       flex: 1;
     }
 
-    /* カラーパレット（6色 × 3トーン） */
-    .color-section {
-      margin-top: 8px;
+    /* カラーパレット */
+    .color-palette-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
     }
 
     .color-row {
       display: flex;
-      gap: 8px;
-      margin-bottom: 6px;
-      align-items: center;
-    }
-
-    .color-label {
-      font-size: 0.75rem;
-      color: #666;
-      width: 35px;
-    }
-
-    .color-options-group {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-start;
     }
 
     .color-option {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       border: 2px solid transparent;
       cursor: pointer;
@@ -196,12 +250,13 @@
       margin-top: 12px;
     }
 
-    /* イベント一覧 */
+    /* イベント一覧エリア（カレンダー下部） */
     .event-list-card {
       background: #fff;
       padding: 20px;
       border-radius: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-top: 20px;
     }
 
     .event-item {
@@ -254,8 +309,8 @@
 <body>
 
 <div class="container">
-  <!-- カレンダー表示エリア -->
-  <div class="calendar-card">
+  <!-- カレンダー表示エリア（メイン・スライド機能付き） -->
+  <div class="calendar-card" id="calendarCard">
     <div class="calendar-header">
       <button class="nav-btn" onclick="prevMonth()">&lt;</button>
       <h2 id="calendarTitle">2026年7月</h2>
@@ -264,9 +319,23 @@
     <div class="calendar-grid" id="calendarGrid"></div>
   </div>
 
-  <!-- イベント追加フォーム -->
+  <!-- 登録イベント一覧 -->
+  <div class="event-list-card">
+    <h3>登録イベント一覧</h3>
+    <div id="eventList"></div>
+  </div>
+
+  <!-- ＋ボタン -->
+  <button class="add-btn-float" onclick="openModal()">＋</button>
+</div>
+
+<!-- イベント追加モーダル -->
+<div class="modal-overlay" id="modalOverlay">
   <div class="form-card">
-    <h3>イベント追加</h3>
+    <div class="modal-header">
+      <h3>イベント追加</h3>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
 
     <div class="form-group">
       <label for="eventTitle">イベント名</label>
@@ -326,56 +395,41 @@
       <textarea id="eventMemo" placeholder="自由記入"></textarea>
     </div>
 
-    <!-- カラー選択：6色 × 濃淡3トーン -->
+    <!-- カラー選択（ラベルなし 6色 × 3トーン） -->
     <div class="form-group">
       <label>カラーを選択</label>
-      <div class="color-section">
+      <div class="color-palette-group">
         <!-- 濃いトーン -->
         <div class="color-row">
-          <span class="color-label">濃い</span>
-          <div class="color-options-group">
-            <div class="color-option selected" data-color="#b30000" style="background-color: #b30000;"></div>
-            <div class="color-option" data-color="#b36200" style="background-color: #b36200;"></div>
-            <div class="color-option" data-color="#b38f00" style="background-color: #b38f00;"></div>
-            <div class="color-option" data-color="#1e8235" style="background-color: #1e8235;"></div>
-            <div class="color-option" data-color="#0051b3" style="background-color: #0051b3;"></div>
-            <div class="color-option" data-color="#6b21a8" style="background-color: #6b21a8;"></div>
-          </div>
+          <div class="color-option selected" data-color="#b30000" style="background-color: #b30000;"></div>
+          <div class="color-option" data-color="#b36200" style="background-color: #b36200;"></div>
+          <div class="color-option" data-color="#b38f00" style="background-color: #b38f00;"></div>
+          <div class="color-option" data-color="#1e8235" style="background-color: #1e8235;"></div>
+          <div class="color-option" data-color="#0051b3" style="background-color: #0051b3;"></div>
+          <div class="color-option" data-color="#6b21a8" style="background-color: #6b21a8;"></div>
         </div>
         <!-- 普通トーン -->
         <div class="color-row">
-          <span class="color-label">普通</span>
-          <div class="color-options-group">
-            <div class="color-option" data-color="#ff3b30" style="background-color: #ff3b30;"></div>
-            <div class="color-option" data-color="#ff9500" style="background-color: #ff9500;"></div>
-            <div class="color-option" data-color="#ffcc00" style="background-color: #ffcc00;"></div>
-            <div class="color-option" data-color="#34c759" style="background-color: #34c759;"></div>
-            <div class="color-option" data-color="#007aff" style="background-color: #007aff;"></div>
-            <div class="color-option" data-color="#af52de" style="background-color: #af52de;"></div>
-          </div>
+          <div class="color-option" data-color="#ff3b30" style="background-color: #ff3b30;"></div>
+          <div class="color-option" data-color="#ff9500" style="background-color: #ff9500;"></div>
+          <div class="color-option" data-color="#ffcc00" style="background-color: #ffcc00;"></div>
+          <div class="color-option" data-color="#34c759" style="background-color: #34c759;"></div>
+          <div class="color-option" data-color="#007aff" style="background-color: #007aff;"></div>
+          <div class="color-option" data-color="#af52de" style="background-color: #af52de;"></div>
         </div>
         <!-- 薄いトーン -->
         <div class="color-row">
-          <span class="color-label">薄い</span>
-          <div class="color-options-group">
-            <div class="color-option" data-color="#ff9999" style="background-color: #ff9999;"></div>
-            <div class="color-option" data-color="#ffcc80" style="background-color: #ffcc80;"></div>
-            <div class="color-option" data-color="#ffeb99" style="background-color: #ffeb99;"></div>
-            <div class="color-option" data-color="#a3e6b1" style="background-color: #a3e6b1;"></div>
-            <div class="color-option" data-color="#99c2ff" style="background-color: #99c2ff;"></div>
-            <div class="color-option" data-color="#d8b4fe" style="background-color: #d8b4fe;"></div>
-          </div>
+          <div class="color-option" data-color="#ff9999" style="background-color: #ff9999;"></div>
+          <div class="color-option" data-color="#ffcc80" style="background-color: #ffcc80;"></div>
+          <div class="color-option" data-color="#ffeb99" style="background-color: #ffeb99;"></div>
+          <div class="color-option" data-color="#a3e6b1" style="background-color: #a3e6b1;"></div>
+          <div class="color-option" data-color="#99c2ff" style="background-color: #99c2ff;"></div>
+          <div class="color-option" data-color="#d8b4fe" style="background-color: #d8b4fe;"></div>
         </div>
       </div>
     </div>
 
     <button class="submit-btn" onclick="addEvent()">保存する</button>
-  </div>
-
-  <!-- イベント一覧表示エリア -->
-  <div class="event-list-card">
-    <h3>登録イベント一覧</h3>
-    <div id="eventList"></div>
   </div>
 </div>
 
@@ -383,7 +437,14 @@
   let currentDate = new Date();
   let selectedColor = "#b30000";
 
-  // カラー選択処理
+  function openModal() {
+    document.getElementById('modalOverlay').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+  }
+
   function initColorPalette() {
     const colorOptions = document.querySelectorAll('.color-option');
     colorOptions.forEach(option => {
@@ -395,7 +456,6 @@
     });
   }
 
-  // 時間の表示切り替え（音楽選択時のみ表示）
   function toggleTimeInput() {
     const genre = document.getElementById('eventGenre').value;
     const timeGroup = document.getElementById('timeGroup');
@@ -413,9 +473,37 @@
     toggleTimeInput();
     renderCalendar();
     renderEvents();
+    initSwipeGesture();
   });
 
-  // カレンダー描画
+  /* カレンダーの左右スライド（スワイプ）制御 */
+  function initSwipeGesture() {
+    const calendarCard = document.getElementById('calendarCard');
+    let startX = 0;
+    let endX = 0;
+
+    calendarCard.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+    }, false);
+
+    calendarCard.addEventListener('touchend', (e) => {
+      endX = e.changedTouches[0].clientX;
+      handleSwipe();
+    }, false);
+
+    function handleSwipe() {
+      const diffX = endX - startX;
+      // 50px以上スライドした場合に月移動を実行
+      if (Math.abs(diffX) > 50) {
+        if (diffX < 0) {
+          nextMonth(); // 左スライド ➔ 翌月へ
+        } else {
+          prevMonth(); // 右スライド ➔ 前月へ
+        }
+      }
+    }
+  }
+
   function renderCalendar() {
     const grid = document.getElementById('calendarGrid');
     grid.innerHTML = '';
@@ -526,6 +614,7 @@
     document.getElementById('eventMemo').value = '';
     toggleTimeInput();
 
+    closeModal();
     renderCalendar();
     renderEvents();
   }
